@@ -311,6 +311,7 @@
       border: 2px solid transparent;
       background: linear-gradient(135deg, var(--v), var(--accent)) border-box;
       -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
       -webkit-mask-composite: destination-out;
       mask-composite: exclude
     }
@@ -485,6 +486,42 @@
       color: var(--muted);
       font-weight: 500;
       margin-bottom: clamp(20px, 4vw, 36px)
+    }
+
+    /* WELCOME CARD */
+    .welcome-card {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: clamp(24px, 5vw, 40px);
+      padding: 0 4px
+    }
+
+    .welcome-avatar-wrap {
+      position: relative;
+      flex-shrink: 0
+    }
+
+    .welcome-avatar {
+      width: clamp(70px, 15vw, 90px);
+      height: clamp(70px, 15vw, 90px);
+      border-radius: 18px;
+      object-fit: cover;
+      border: 2px solid rgba(124, 58, 237, .4);
+      background: rgba(124, 58, 237, .1)
+    }
+
+    .welcome-avatar-ring {
+      position: absolute;
+      inset: -5px;
+      border-radius: 23px;
+      border: 2px solid transparent;
+      background: linear-gradient(135deg, var(--v), var(--accent)) border-box;
+      -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: destination-out;
+      mask-composite: exclude;
+      opacity: .6
     }
 
     /* LINK BOX */
@@ -892,8 +929,16 @@
     </div>
 
     <div class="dash-content">
-      <div class="dash-title">Seu Painel 🚀</div>
-      <div class="dash-sub">Acompanhe seus cliques, conversões e ganhos em tempo real.</div>
+      <div class="welcome-card">
+        <div class="welcome-avatar-wrap">
+          <img class="welcome-avatar" id="dashAvatar" src="" alt="">
+          <div class="welcome-avatar-ring"></div>
+        </div>
+        <div>
+          <div class="dash-title" id="dashTitle">Olá, carregando...</div>
+          <div class="dash-sub">Acompanhe seus cliques, conversões e ganhos em tempo real.</div>
+        </div>
+      </div>
 
       <!-- LINK BOX -->
       <div class="link-box">
@@ -962,6 +1007,8 @@
     const ANON = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNxYXJqdGh3aXRsbWZkdHhtaHB0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI0ODg1NDQsImV4cCI6MjA4ODA2NDU0NH0.sBh_W3V4CmQkTghIbMEIi8Or-vr2r8Q_iGbNGkQeA1E";
     // Site principal (onde estão as skins)
     const MAIN_SITE = "https://valtrix-three.vercel.app"; // ← MUDE PARA A URL DO SEU SITE
+    // Proxy para evitar CORS ao buscar a foto da API oficial (Supabase Edge Function)
+    const PROXY = "https://sqarjthwitlmfdtxmhpt.supabase.co/functions/v1/roblox-proxy?url=";
 
     // ── ESTADO ─────────────────────────────────────────────
     let currentUser = null; // { uid, username, displayName, avatarUrl }
@@ -991,6 +1038,11 @@
       return await r.json();
     }
     // ── ROBLOX LOOKUP ───────────────────────────────────────
+    // Função para buscar a foto diretamente da API do Roblox
+    function getRobloxPhoto(uid) {
+      return `https://www.roblox.com/headshot-thumbnail/image?userId=${uid}&width=420&height=420&format=png`;
+    }
+
     async function robloxLookup(username) {
       const res = await edgeCall("affiliate", {
         action: "lookup",
@@ -998,6 +1050,27 @@
       });
 
       if (res.error || !res.user) return null;
+
+      const uid = res.user.uid;
+      let avatarUrl = "";
+
+      // ── BUSCA AVATAR ( thumbnails.roblox.com ) ──
+      try {
+        const thumbUrl = `https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=${uid}&size=180x180&format=Png&isCircular=false`;
+        const ra = await fetch(PROXY + encodeURIComponent(thumbUrl), {
+          headers: { "Authorization": `Bearer ${ANON}` }
+        });
+        if (ra.ok) {
+          const da = await ra.json();
+          avatarUrl = da.data?.[0]?.imageUrl || "";
+        }
+      } catch (e) {
+        console.warn("Avatar via API falhou, usando fallback direto.");
+      }
+
+      // Garantir que temos a foto atualizada puxando direto do Roblox (fallback ou oficial)
+      res.user.avatarUrl = avatarUrl || getRobloxPhoto(uid);
+
       return res.user;
     }
 
@@ -1059,6 +1132,10 @@
         affiliateData = res.affiliate;
         affiliateLink = `${MAIN_SITE}/?ref=${affiliateData.code}`;
 
+        // Salvar sessão no localStorage
+        localStorage.setItem("valtrix_user", JSON.stringify(currentUser));
+        localStorage.setItem("valtrix_affiliate", JSON.stringify(affiliateData));
+
         // Mostrar dashboard
         document.getElementById("confirmScreen").classList.remove("show");
         document.getElementById("topAvatar").src = currentUser.avatarUrl;
@@ -1073,13 +1150,47 @@
 
     function doLogout() {
       currentUser = null; affiliateData = null; affiliateLink = "";
+      localStorage.removeItem("valtrix_user");
+      localStorage.removeItem("valtrix_affiliate");
       document.getElementById("dashboard").classList.remove("show");
       document.getElementById("loginScreen").classList.remove("gone");
       document.getElementById("usernameIn").value = "";
     }
 
+    // ── PERSISTENCE ──────────────────────────────────────────
+    function checkSession() {
+      const savedUser = localStorage.getItem("valtrix_user");
+      const savedAffiliate = localStorage.getItem("valtrix_affiliate");
+
+      if (savedUser && savedAffiliate) {
+        currentUser = JSON.parse(savedUser);
+        affiliateData = JSON.parse(savedAffiliate);
+        affiliateLink = `${MAIN_SITE}/?ref=${affiliateData.code}`;
+
+        // Pular telas de login e ir direto pro dashboard
+        document.getElementById("loginScreen").classList.add("gone");
+        document.getElementById("topAvatar").src = currentUser.avatarUrl;
+        document.getElementById("topName").textContent = currentUser.username;
+        document.getElementById("dashAvatar").src = currentUser.avatarUrl;
+        document.getElementById("dashTitle").textContent = `Olá, ${currentUser.username}! 🚀`;
+        document.getElementById("dashboard").classList.add("show");
+
+        loadDashboard();
+      }
+    }
+
+    // Chamar ao carregar a página
+    window.addEventListener("DOMContentLoaded", checkSession);
+
     // ── DASHBOARD ───────────────────────────────────────────
     async function loadDashboard() {
+      // Mostrar info básica
+      if (currentUser) {
+        document.getElementById("dashAvatar").src = currentUser.avatarUrl;
+        document.getElementById("dashTitle").textContent = `Olá, ${currentUser.username}! 🚀`;
+        document.getElementById("topAvatar").src = currentUser.avatarUrl;
+        document.getElementById("topName").textContent = currentUser.username;
+      }
       // Mostrar link
       const linkEl = document.getElementById("linkDisplay");
       const domain = MAIN_SITE.replace(/https?:\/\//, "");
