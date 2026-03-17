@@ -229,8 +229,11 @@
     .lo-btn::after {
       content: '';
       position: absolute;
-      top: 0; left: -100%; width: 50%; height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      top: 0;
+      left: -100%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
       transition: 0.5s;
     }
 
@@ -435,7 +438,7 @@
       justify-content: space-between;
       max-width: 900px;
       margin: 0 auto clamp(24px, 4vw, 48px);
-      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
     }
 
     .topbar-brand {
@@ -638,7 +641,7 @@
       gap: 8px;
       transition: all var(--t);
     }
-    
+
     .btn-copy {
       background: linear-gradient(135deg, var(--v), #9333ea);
       color: #fff;
@@ -690,7 +693,7 @@
       transition: all var(--t);
       display: flex;
       flex-direction: column;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
     .stat-card:hover {
@@ -765,7 +768,7 @@
       padding: clamp(20px, 3vw, 28px);
       display: flex;
       flex-direction: column;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
     .chart-header {
@@ -836,7 +839,7 @@
       padding: clamp(20px, 3vw, 28px);
       display: flex;
       flex-direction: column;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
       height: 100%;
     }
 
@@ -865,7 +868,8 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      background: rgba(124, 58, 237, 0.08); /* slightly stronger */
+      background: rgba(124, 58, 237, 0.08);
+      /* slightly stronger */
       border: 1px solid rgba(124, 58, 237, 0.2);
       border-radius: 16px;
       padding: 14px 18px;
@@ -888,9 +892,17 @@
       text-align: center;
     }
 
-    .rank-1 .rank-pos { color: var(--gold); }
-    .rank-2 .rank-pos { color: #cbd5e1; }
-    .rank-3 .rank-pos { color: #b45309; }
+    .rank-1 .rank-pos {
+      color: var(--gold);
+    }
+
+    .rank-2 .rank-pos {
+      color: #cbd5e1;
+    }
+
+    .rank-3 .rank-pos {
+      color: #b45309;
+    }
 
     /* DASHBOARD BOTTOM GRID */
     .dashboard-bottom {
@@ -898,7 +910,7 @@
       grid-template-columns: 1fr;
       gap: clamp(16px, 3vw, 24px);
     }
-    
+
     @media (min-width: 1100px) {
       .dashboard-bottom {
         grid-template-columns: 2fr 1fr;
@@ -931,7 +943,7 @@
       border: 1px solid var(--card-border);
       border-radius: var(--rxl);
       overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
     }
 
     .history-header {
@@ -987,7 +999,7 @@
       padding: 14px clamp(16px, 3vw, 28px);
       text-align: left;
       border-bottom: 1px solid rgba(124, 58, 237, 0.2);
-      background: rgba(0,0,0,0.3);
+      background: rgba(0, 0, 0, 0.3);
     }
 
     td {
@@ -1130,6 +1142,7 @@
       .link-actions {
         flex-direction: column;
       }
+
       .link-display-text {
         font-size: 13px;
         padding: 12px;
@@ -1276,12 +1289,16 @@
         <!-- CHART -->
         <div class="chart-box">
           <style>
-            .chart-select option { background: #0a0414; color: #fff; }
+            .chart-select option {
+              background: #0a0414;
+              color: #fff;
+            }
           </style>
           <div class="chart-header">
             <div class="chart-title" style="display:flex; flex-direction:column; gap:8px;">
               <div>Desempenho <span>Últimos 90 dias</span></div>
-              <select id="chartGroupSelect" class="chart-select" onchange="updateChartGroup(this.value)" style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(124, 58, 237, 0.3); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; outline: none; cursor: pointer; width: 100%;">
+              <select id="chartGroupSelect" class="chart-select" onchange="updateChartGroup(this.value)"
+                style="background: rgba(0, 0, 0, 0.3); border: 1px solid rgba(124, 58, 237, 0.3); color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 600; padding: 6px 12px; border-radius: 8px; outline: none; cursor: pointer; width: 100%;">
               </select>
             </div>
             <div class="chart-toggles">
@@ -1306,7 +1323,7 @@
 
       <!-- BOTTOM SECTION: HISTORY & TOP ITEMS -->
       <div class="dashboard-bottom">
-        
+
         <!-- HISTORY -->
         <div class="history-box">
           <div class="history-header">
@@ -1355,8 +1372,20 @@
     let chartDataByGroup = {};
     let currentChartType = 'earnings';
     let currentChartGroup = 'Total';
+    let currentBrlRate = 5.0;
 
     // ── HELPERS ────────────────────────────────────────────
+    async function fetchBrlRate() {
+      try {
+        const r = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
+        const data = await r.json();
+        if (data && data.USDBRL && data.USDBRL.ask) {
+          currentBrlRate = parseFloat(data.USDBRL.ask);
+        }
+      } catch (e) {
+        console.error("Failed to fetch BRL rate", e);
+      }
+    }
     function toast(msg, type = "info") {
       const el = document.getElementById("toast");
       const icons = { info: "💫", success: "✅", error: "❌", copy: "📋" };
@@ -1549,13 +1578,20 @@
         const a = res.affiliate;
         const refs = res.referrals || [];
 
+        // Puxar cotação do dólar para conversão em tempo real
+        await fetchBrlRate();
+
         // Stats
         const rate = a.clicks > 0 ? ((a.conversions / a.clicks) * 100).toFixed(1) + "%" : "0%";
         document.getElementById("sClicks").textContent = a.clicks.toLocaleString("pt-BR");
         document.getElementById("sConversions").textContent = a.conversions.toLocaleString("pt-BR");
         document.getElementById("sRate").textContent = rate;
-        document.getElementById("sEarnings").textContent = parseFloat(a.earnings).toFixed(2).replace(".", ",");
-        
+
+        // Conversão: a.earnings vem em Robux. 10.000 Robux = $38 USD => 1 Robux = $0.0038
+        const totalRobux = parseFloat(a.earnings || 0);
+        const totalBrl = (totalRobux * 0.0038) * currentBrlRate;
+        document.getElementById("sEarnings").textContent = totalBrl.toFixed(2).replace(".", ",");
+
         const ratioEl = document.getElementById("sConvRatio");
         if (a.conversions > 0) {
           const ratio = Math.round(a.clicks / a.conversions);
@@ -1570,10 +1606,10 @@
 
         // Histórico
         renderHistory(refs);
-        
+
         // Gráfico via CSV
         await loadChartFromCSV();
-        
+
         // Ranking de Afiliados
         await loadRanking();
       } catch {
@@ -1587,37 +1623,38 @@
         const res = await fetch('animeverse.csv');
         const text = await res.text();
         const lines = text.split('\n');
-        
+
         chartDataByGroup = {};
         const groups = new Set();
-        
+
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i].trim();
           if (!line) continue;
-          
+
           const parts = line.split(',');
           if (parts.length >= 3) {
             const group = parts[0];
             groups.add(group);
-            
+
             if (!chartDataByGroup[group]) {
               chartDataByGroup[group] = { labels: [], earnings: [], clicks: [], conversions: [] };
             }
-            
+
             const dateObj = new Date(parts[1]);
             const dateStr = dateObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
-            const val = parseFloat(parts[2]) || 0;
-            
+            const valRobux = parseFloat(parts[2]) || 0;
+            const valBrl = (valRobux * 0.0038) * currentBrlRate;
+
             chartDataByGroup[group].labels.push(dateStr);
-            chartDataByGroup[group].earnings.push(val);
-            
+            chartDataByGroup[group].earnings.push(valBrl);
+
             // Simulação de cliques e conversões para os gráficos baseada nos ganhos
-            const conv = val > 0 ? Math.ceil(val / 10) : 0;
+            const conv = valRobux > 0 ? Math.ceil(valRobux / 4) : 0;
             chartDataByGroup[group].conversions.push(conv);
             chartDataByGroup[group].clicks.push(conv > 0 ? conv * 12 + Math.floor(Math.random() * 8) : Math.floor(Math.random() * 5));
           }
         }
-        
+
         // Popular o select de grupos
         const selectEl = document.getElementById("chartGroupSelect");
         if (selectEl) {
@@ -1627,7 +1664,7 @@
             groupArray.splice(groupArray.indexOf("Total"), 1);
             groupArray.unshift("Total");
           }
-          
+
           for (const g of groupArray) {
             const opt = document.createElement("option");
             opt.value = g;
@@ -1635,7 +1672,7 @@
             selectEl.appendChild(opt);
           }
         }
-        
+
         if (groups.size > 0) {
           initChart();
           renderTopItems();
@@ -1712,7 +1749,7 @@
               padding: 10,
               displayColors: false,
               callbacks: {
-                label: function(context) {
+                label: function (context) {
                   return type === 'earnings' ? `R$ ${context.parsed.y.toFixed(2).replace('.', ',')}` : context.parsed.y;
                 }
               }
@@ -1769,15 +1806,15 @@
         return;
       }
 
-      // Pegar o Top 3
-      const top3 = itemsWithEarnings.slice(0, 3);
+      // Pegar o Top 10
+      const top10 = itemsWithEarnings.slice(0, 10);
       let html = "";
-      const medals = ["🥇", "🥈", "🥉"];
+      const medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
 
-      top3.forEach((item, index) => {
+      top10.forEach((item, index) => {
         const medal = medals[index] || "📦";
         const valStr = item.earnings.toFixed(2).replace(".", ",");
-        
+
         html += `
           <div class="rank-item rank-${index + 1}">
             <div class="rank-pos">#${index + 1}</div>
@@ -1796,35 +1833,36 @@
     async function loadRanking() {
       const listEl = document.getElementById("affiliateRankList");
       if (!listEl) return;
-      
+
       try {
         const res = await edgeCall("affiliate", { action: "ranking" });
         if (res.error || !res.ranking || res.ranking.length === 0) {
-           listEl.innerHTML = `<div class="history-empty" style="padding: 24px;"><span class="he-icon">📭</span>Nenhum afiliado no ranking.</div>`;
-           return;
+          listEl.innerHTML = `<div class="history-empty" style="padding: 24px;"><span class="he-icon">📭</span>Nenhum afiliado no ranking.</div>`;
+          return;
         }
 
-        const top = res.ranking.slice(0, 3);
+        const top = res.ranking.slice(0, 10);
         let html = "";
-        const medals = ["🥇", "🥈", "🥉"];
-        
+        const medals = ["🥇", "🥈", "🥉", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"];
+
         top.forEach((aff, index) => {
           const medal = medals[index] || "🏅";
-          const valStr = parseFloat(aff.earnings || 0).toFixed(2).replace(".", ",");
+          const robux = Math.floor(parseFloat(aff.earnings || 0));
+          const valStr = robux.toLocaleString("pt-BR") + " Robux";
           const name = aff.username || "Afiliado";
-          
+
           html += `
             <div class="rank-item rank-${index + 1}">
               <div class="rank-pos">#${index + 1}</div>
               <div class="rank-info" style="overflow: hidden;">
                 <div class="rank-name" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${name}</div>
-                <div class="rank-sub">${valStr} R$ ganhos</div>
+                <div class="rank-sub"><span style="color:var(--gold); font-weight:700;">${valStr}</span> ganhos</div>
               </div>
               <span style="font-size:18px; flex-shrink: 0;">${medal}</span>
             </div>
           `;
         });
-        
+
         listEl.innerHTML = html;
       } catch (e) {
         listEl.innerHTML = `<div class="history-empty" style="padding: 24px;"><span class="he-icon">❌</span>Erro ao carregar ranking.</div>`;
@@ -1842,22 +1880,24 @@
         const date = new Date(r.created_at).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
         const isConv = r.converted;
         const comm = parseFloat(r.commission || 0);
-        
+
         let displayHtml = "";
-        
+
         if (isConv && comm > 0) {
           // É uma venda, tem comissão
-          const estPrice = (comm / 0.15).toFixed(2).replace(".", ",");
-          const commStr = comm.toFixed(2).replace(".", ",");
+          // comm = Robux gerados. Ex: 3, 4, etc.
+          const robuxEarned = Math.round(comm);
+          const commBrl = (robuxEarned * 0.0038) * currentBrlRate;
+          const commBrlStr = commBrl.toFixed(2).replace(".", ",");
           const itemName = r.item_name || "Item Valioso";
-          
+
           displayHtml = `
             <div>
               <span style="color: var(--text); font-weight: 700;">${itemName}</span>
               <span style="color: var(--muted); margin: 0 4px;">—</span>
-              <span style="color: var(--text); font-weight: 600;">${estPrice} R$</span>
+              <span style="color: var(--text); font-weight: 600;">Gerou: <span style="color: var(--v3);">${robuxEarned} Robux</span></span>
               <span style="color: var(--muted); margin: 0 4px;">—</span>
-              <span style="color: var(--gold); font-size: 12px; font-weight: 700;">Comissão: +${commStr} R$</span>
+              <span style="color: var(--gold); font-size: 12px; font-weight: 700;">Comissão: +${commBrlStr} R$</span>
             </div>
           `;
         } else {
@@ -1868,7 +1908,7 @@
             </div>
           `;
         }
-        
+
         const badge = isConv
           ? `<span class="badge-conv">🛒</span>`
           : `<span class="badge-click">👆</span>`;
