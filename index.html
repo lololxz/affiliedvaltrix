@@ -1428,6 +1428,82 @@
     }
 
     /* ── MODAL ── */
+    .btn-submit:hover {
+      background: var(--v2);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(109, 40, 217, .4);
+    }
+
+    /* ── ADMIN PANEL ── */
+    #adminBtn {
+      display: none;
+      background: rgba(234, 179, 8, .15);
+      border: 1px solid rgba(234, 179, 8, .4);
+      color: var(--gold);
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    #adminBtn:hover {
+      background: rgba(234, 179, 8, .25);
+      transform: translateY(-1px);
+    }
+
+    .admin-w-card {
+      background: rgba(109, 40, 217, .05);
+      border: 1px solid rgba(109, 40, 217, .2);
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .w-info {
+      font-size: 13px;
+      color: var(--muted2);
+      margin-bottom: 4px;
+    }
+
+    .w-val {
+      font-size: 15px;
+      color: var(--gold);
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .w-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .w-btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      border: none;
+    }
+
+    .w-btn.approve {
+      background: rgba(34, 197, 94, .2);
+      color: #4ade80;
+    }
+
+    .w-btn.reject {
+      background: rgba(239, 68, 68, .2);
+      color: #f87171;
+    }
+
+    .w-btn:hover {
+      filter: brightness(1.2);
+    }
+
     .modal-backdrop {
       position: fixed;
       inset: 0;
@@ -1642,6 +1718,7 @@
     </div>
   </div>
 
+
   <!-- ══ CONFIRM ══ -->
   <div id="confirmScreen">
     <div class="confirm-box">
@@ -1670,6 +1747,7 @@
           <img id="topAvatar" src="" alt="">
           <span id="topName"></span>
         </div>
+        <button id="adminBtn" onclick="window.location.href='admin.html'">👑 Admin</button>
         <button class="logout-btn" onclick="doLogout()">Sair</button>
       </div>
     </div>
@@ -1797,8 +1875,10 @@
       <div class="modal-title">💸 Solicitar Saque</div>
       <div class="modal-sub">Preencha seus dados para receber o Pix do seu saldo disponível.</div>
 
-      <label class="field-label" for="wAmount">Valor do Saque (R$)</label>
-      <input type="number" id="wAmount" class="field-input" placeholder="Ex: 50.00" step="0.01" min="1" max="9999">
+      <label class="field-label" for="wAmount">Valor do Saque (Robux) - <span id="wAproxBrl"
+          style="color:var(--green)">~ R$ 0,00</span></label>
+      <input type="number" id="wAmount" class="field-input" placeholder="Ex: 5000" step="1" min="10"
+        oninput="updateBrlPreview()">
 
       <label class="field-label" for="wFullName">Nome Completo (idêntico ao PIX)</label>
       <input type="text" id="wFullName" class="field-input" placeholder="Seu nome completo">
@@ -1831,10 +1911,25 @@
 
     // ── HELPERS ─────────────────────────────────────────────
     async function fetchBrlRate() {
+      // Use localStorage for stability across sessions and tabs
+      const cached = localStorage.getItem("stable_brl_rate_vault");
+      const timestamp = localStorage.getItem("stable_brl_rate_time");
+      const now = Date.now();
+
+      // Cache for 1 hour
+      if (cached && timestamp && (now - parseInt(timestamp) < 3600000)) {
+        currentBrlRate = parseFloat(cached);
+        return;
+      }
+
       try {
         const r = await fetch("https://economia.awesomeapi.com.br/json/last/USD-BRL");
         const d = await r.json();
-        if (d?.USDBRL?.ask) currentBrlRate = parseFloat(d.USDBRL.ask);
+        if (d?.USDBRL?.ask) {
+          currentBrlRate = parseFloat(d.USDBRL.ask);
+          localStorage.setItem("stable_brl_rate_vault", currentBrlRate.toString());
+          localStorage.setItem("stable_brl_rate_time", now.toString());
+        }
       } catch { }
     }
 
@@ -1979,14 +2074,18 @@
         const a = res.affiliate;
         const refs = res.referrals || [];
 
-        await fetchBrlRate();
+        // Update rate from backend source of truth
+        if (a.current_rate) {
+          currentBrlRate = a.current_rate;
+          localStorage.setItem("stable_brl_rate_vault", currentBrlRate.toString());
+          localStorage.setItem("stable_brl_rate_time", Date.now().toString());
+        }
 
-        document.getElementById("sClicks").textContent = a.clicks.toLocaleString("pt-BR");
-        document.getElementById("sConversions").textContent = a.conversions.toLocaleString("pt-BR");
+        const fmt = (val) => (parseFloat(val) || 0).toFixed(2).replace(".", ",");
 
-        const formatBrl = (robux) => ((parseFloat(robux) || 0) * 0.0038 * currentBrlRate).toFixed(2).replace(".", ",");
-        document.getElementById("sPending").textContent = formatBrl(a.balance_pending);
-        document.getElementById("sAvailable").textContent = formatBrl(a.balance_available);
+        // Everything is now stored in BRL in the database
+        document.getElementById("sPending").textContent = fmt(a.balance_pending);
+        document.getElementById("sAvailable").textContent = fmt(a.balance_available);
 
         renderHistory(refs, res.withdrawals || []);
         await loadChartFromCSV();
@@ -2199,11 +2298,12 @@
         let displayHtml = "", badge = "";
 
         if (item._type === 'withdrawal') {
-          const wAmt = parseFloat(item.amount).toFixed(2).replace(".", ",");
+          const brlAmtVal = parseFloat(item.amount) || 0;
+          const wAmtStr = brlAmtVal.toFixed(2).replace(".", ",");
           const sMap = { pago: { c: "var(--green)", i: "✅", t: "Pago" }, recusado: { c: "#ef4444", i: "❌", t: "Recusado" } };
           const s = sMap[item.status] || { c: "var(--muted)", i: "⏳", t: "Pendente" };
           const reason = item.status === 'recusado' && item.rejection_reason ? `<div style="color:#ef4444;font-size:11px;margin-top:3px">Motivo: ${item.rejection_reason}</div>` : "";
-          displayHtml = `<div><span style="color:var(--text);font-weight:700">💳 Saque</span> <span style="color:var(--muted)">—</span> <span style="color:var(--v3)">R$ ${wAmt}</span> <span style="color:var(--muted)">—</span> <span style="color:${s.c};font-size:12px;font-weight:700">${s.i} ${s.t}</span>${reason}</div>`;
+          displayHtml = `<div><span style="color:var(--text);font-weight:700">💳 Saque</span> <span style="color:var(--muted)">—</span> <span style="color:var(--v3)">R$ ${wAmtStr}</span> <span style="color:var(--muted)">—</span> <span style="color:${s.c};font-size:12px;font-weight:700">${s.i} ${s.t}</span>${reason}</div>`;
           badge = `<span class="badge-click">💸</span>`;
         } else {
           const isConv = item.converted;
@@ -2242,10 +2342,19 @@
       });
     }
 
-    function openWithdrawModal() { document.getElementById("withdrawModal").classList.remove("gone"); }
+    function openWithdrawModal() { document.getElementById("withdrawModal").classList.remove("gone"); updateBrlPreview(); }
     function closeWithdrawModal() {
       document.getElementById("withdrawModal").classList.add("gone");
       ["wAmount", "wFullName", "wPixKey"].forEach(id => document.getElementById(id).value = "");
+      updateBrlPreview();
+    }
+
+    function updateBrlPreview() {
+      const rb = parseFloat(document.getElementById('wAmount').value) || 0;
+      const rawBrl = (rb * 0.0038 * currentBrlRate);
+      const brlFinal = (Math.floor(rawBrl * 100) / 100).toFixed(2).replace('.', ',');
+      const el = document.getElementById('wAproxBrl');
+      if (el) el.textContent = `~ R$ ${brlFinal}`;
     }
 
     // Close modal on backdrop click
@@ -2254,7 +2363,7 @@
     });
 
     async function submitWithdrawal() {
-      const amount = parseFloat(document.getElementById("wAmount").value);
+      const amount = parseInt(document.getElementById("wAmount").value, 10);
       const fullName = document.getElementById("wFullName").value.trim();
       const pixKey = document.getElementById("wPixKey").value.trim();
 
@@ -2266,12 +2375,20 @@
       btn.textContent = "Processando..."; btn.disabled = true;
 
       try {
-        const res = await edgeCall("affiliate", { action: "request_withdrawal", uid: currentUser.uid, amount, fullName, pixKey });
+        // Precise calculation matching the preview exactly
+        const rawBrl = (amount * 0.0038 * currentBrlRate);
+        const brlAmount = Math.floor(rawBrl * 100) / 100;
+
+        console.log(`[WITHDRAWAL] Amount: ${amount} Robux, Rate: ${currentBrlRate}, Result: ${brlAmount} BRL`);
+
+        const res = await edgeCall("affiliate", { action: "request_withdrawal", uid: currentUser.uid, amount: brlAmount, fullName, pixKey });
         if (res.error) { toast(res.error, "error"); }
         else { toast("Saque solicitado com sucesso!", "success"); closeWithdrawModal(); loadDashboard(); }
       } catch { toast("Erro ao solicitar saque.", "error"); }
       btn.textContent = "Confirmar Saque"; btn.disabled = false;
     }
+
+
   </script>
 
 </body>
