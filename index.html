@@ -1041,35 +1041,77 @@
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-bottom: 18px;
+      margin-bottom: 24px;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 16px;
+    }
+
+    .chart-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
     .chart-title {
       font-family: 'Syne', sans-serif;
-      font-size: 16px;
+      font-size: 18px;
       font-weight: 800;
       color: var(--text);
-      letter-spacing: -.2px;
+      letter-spacing: -.3px;
     }
 
-    .chart-title span {
-      display: block;
+    .chart-main-stats {
+      display: flex;
+      gap: 24px;
+    }
+
+    .main-stat {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      position: relative;
+      padding-bottom: 8px;
+    }
+
+    .main-stat .ms-label {
       font-size: 11px;
       color: var(--muted);
-      font-weight: 500;
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      margin-top: 3px;
+      font-weight: 600;
+      text-transform: none;
+      margin-bottom: 4px;
+    }
+
+    .main-stat .ms-val {
+      font-family: 'Syne', sans-serif;
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .main-stat.inactive .ms-val {
+      color: var(--muted2);
+    }
+
+    .main-stat .ms-bar {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: var(--text);
+      border-radius: 2px;
+      opacity: 1;
+      transition: opacity 0.2s;
+    }
+
+    .main-stat.inactive .ms-bar {
+      opacity: 0;
     }
 
     .chart-toggles {
       display: flex;
-      gap: 3px;
-      background: rgba(0, 0, 0, .38);
-      padding: 4px;
-      border-radius: 10px;
-      border: 1px solid rgba(109, 40, 217, .18);
+      align-items: center;
+      gap: 6px;
     }
 
     .chart-btn {
@@ -1079,15 +1121,35 @@
       font-family: 'Plus Jakarta Sans', sans-serif;
       font-size: 11px;
       font-weight: 700;
-      padding: 5px 10px;
-      border-radius: 7px;
+      padding: 6px 12px;
+      border-radius: 8px;
       cursor: pointer;
-      transition: background var(--t2), color var(--t2);
+      transition: all 0.2s;
     }
 
     .chart-btn.active {
-      background: rgba(109, 40, 217, .3);
-      color: var(--text);
+      background: rgba(109, 40, 217, .2);
+      color: #fff;
+    }
+
+    .chart-download-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, .05);
+      border: 1px solid rgba(255, 255, 255, .1);
+      border-radius: 8px;
+      color: var(--muted);
+      cursor: pointer;
+      margin-left: 10px;
+      transition: all 0.2s;
+    }
+
+    .chart-download-btn:hover {
+      background: rgba(255, 255, 255, .1);
+      color: #fff;
     }
 
     .chart-container {
@@ -1806,16 +1868,33 @@
       <!-- Chart + Rankings -->
       <div class="dashboard-mid">
         <div class="chart-box">
-          <div class="chart-header">
-            <div class="chart-title">
-              Desempenho
-              <span>Últimos 90 dias</span>
+          <div class="chart-title-wrap">
+            <div class="chart-title">Itens de avatar mais populares</div>
+            <div class="chart-main-stats">
+              <div class="main-stat" id="chartMainStat1" onclick="updateChartType('earnings')">
+                <span class="ms-label">Receita total</span>
+                <span class="ms-val" id="chartTotalRevenue">0</span>
+                <div class="ms-bar"></div>
+              </div>
+              <div class="main-stat inactive" id="chartMainStat2" onclick="updateChartType('conversions')">
+                <span class="ms-label">Vendas totais</span>
+                <span class="ms-val" id="chartTotalSales">--</span>
+                <div class="ms-bar"></div>
+              </div>
             </div>
-            <div class="chart-toggles">
-              <button class="chart-btn active" onclick="updateChartType('earnings',event)">Ganhos</button>
-              <button class="chart-btn" onclick="updateChartType('clicks',event)">Cliques</button>
-              <button class="chart-btn" onclick="updateChartType('conversions',event)">Conversões</button>
-            </div>
+          </div>
+          <div class="chart-toggles">
+            <button class="chart-btn active" onclick="updateChartType('earnings',event)">Ganhos</button>
+            <button class="chart-btn" onclick="updateChartType('clicks',event)">Cliques</button>
+            <button class="chart-btn" onclick="updateChartType('conversions',event)">Conversões</button>
+            <button class="chart-download-btn" onclick="downloadCSV()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+            </button>
           </div>
           <div class="chart-container">
             <canvas id="perfChart"></canvas>
@@ -2085,6 +2164,8 @@
         const fmt = (val) => (parseFloat(val) || 0).toFixed(2).replace(".", ",");
 
         // Everything is now stored in BRL in the database
+        document.getElementById("sClicks").textContent = (a.clicks || 0).toLocaleString();
+        document.getElementById("sConversions").textContent = (a.conversions || 0).toLocaleString();
         document.getElementById("sPending").textContent = fmt(a.balance_pending);
         document.getElementById("sAvailable").textContent = fmt(a.balance_available);
 
@@ -2093,6 +2174,34 @@
         await loadRanking();
       } catch { toast("Erro ao carregar estatísticas.", "error"); }
     }
+
+    // ── LANDING PAGE REF ─────────────────────────────────────
+    async function handleLandingRef() {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref");
+
+      if (ref) {
+        console.log("[REF] Link de afiliado detectado:", ref);
+        if (sessionStorage.getItem("valtrix_ref_tracked") === ref) {
+          console.log("[REF] Clique já contabilizado nesta sessão para:", ref);
+          return;
+        }
+
+        try {
+          const success = await trackClick(ref);
+          if (success) {
+            console.log("[REF] Clique registrado com sucesso no servidor.");
+            sessionStorage.setItem("valtrix_ref_tracked", ref);
+            localStorage.setItem("valtrix_ref_attribution", ref);
+          } else {
+            console.error("[REF] Falha ao registrar clique no servidor.");
+          }
+        } catch (e) {
+          console.error("[REF] Erro crítico no rastreio:", e);
+        }
+      }
+    }
+    window.addEventListener("load", handleLandingRef); // Use 'load' to be sure
 
     // ── CHART ────────────────────────────────────────────────
     async function loadChartFromCSV() {
@@ -2140,8 +2249,44 @@
           }
         }
 
-        if (groups.size > 0) { initChart(); renderTopItems(); }
+        if (groups.size > 0) { initChart(); renderTopItems(); updateMainStats(); }
       } catch (e) { console.error("Erro ao carregar CSV", e); }
+    }
+
+    function updateMainStats() {
+      const type = currentChartType;
+      const groups = Object.keys(chartDataByGroup);
+      let totalRevenue = 0;
+      let totalSales = 0;
+
+      groups.forEach(g => {
+        if (g === "Total") {
+          totalRevenue = chartDataByGroup[g].earnings.reduce((a, b) => a + (b || 0), 0);
+          totalSales = chartDataByGroup[g].conversions.reduce((a, b) => a + (b || 0), 0);
+        }
+      });
+
+      const revenueEl = document.getElementById("chartTotalRevenue");
+      const salesEl = document.getElementById("chartTotalSales");
+
+      if (revenueEl) revenueEl.textContent = Math.floor(totalRevenue).toLocaleString();
+      if (salesEl) salesEl.textContent = totalSales > 0 ? totalSales.toLocaleString() : "--";
+
+      // Update UI active state for stats tabs
+      const stat1 = document.getElementById("chartMainStat1");
+      const stat2 = document.getElementById("chartMainStat2");
+      if (stat1 && stat2) {
+        if (type === 'earnings') {
+          stat1.classList.remove("inactive");
+          stat2.classList.add("inactive");
+        } else if (type === 'conversions') {
+          stat1.classList.add("inactive");
+          stat2.classList.remove("inactive");
+        } else {
+          stat1.classList.add("inactive");
+          stat2.classList.add("inactive");
+        }
+      }
     }
 
     function initChart() {
@@ -2151,32 +2296,30 @@
       const type = currentChartType;
       const groups = Object.keys(chartDataByGroup).sort((a, b) => a === "Total" ? -1 : 1);
       const labels = chartDataByGroup[groups[0]]?.labels || [];
-      const palette = ["#c084fc", "#4ade80", "#f43f5e", "#3b82f6", "#ec4899", "#06b6d4", "#f97316"];
-      const pStyles = ['circle', 'rect', 'triangle', 'rectRot', 'star'];
+      const palette = ["#6366f1", "#10b981", "#f43f5e", "#3b82f6", "#ec4899", "#06b6d4", "#f97316"];
       let ci = 0;
 
       const datasets = groups.map(group => {
         const gd = chartDataByGroup[group];
         const data = type === 'clicks' ? gd.clicks : type === 'conversions' ? gd.conversions : gd.earnings;
         const isTotal = group === "Total";
-        const color = isTotal ? "#fbbf24" : palette[ci % palette.length];
-        const pStyle = isTotal ? 'circle' : pStyles[ci % pStyles.length];
+        const color = isTotal ? "#4f46e5" : palette[ci % palette.length];
         if (!isTotal) ci++;
 
         return {
           label: group,
           data,
           borderColor: color,
-          borderWidth: isTotal ? 3 : 2,
+          borderWidth: isTotal ? 2.5 : 1.5,
           fill: false,
-          tension: 0,
+          tension: 0.4,
           pointBackgroundColor: color,
           pointBorderColor: color,
-          pointBorderWidth: 2,
-          pointRadius: 4,
-          pointStyle: pStyle,
-          pointHoverRadius: 6,
-          pointHitRadius: 20
+          pointBorderWidth: 1,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHitRadius: 10,
+          hidden: !isTotal // Hide all except Total by default
         };
       });
 
@@ -2190,29 +2333,36 @@
               display: true, position: 'bottom',
               labels: {
                 color: '#9d93c0', usePointStyle: true, pointStyle: 'circle',
-                boxWidth: 6, boxHeight: 6, padding: 18,
+                boxWidth: 6, boxHeight: 6, padding: 20,
                 font: { family: "'Plus Jakarta Sans',sans-serif", size: 11, weight: '600' }
               }
             },
             tooltip: {
-              backgroundColor: 'rgba(8,4,18,.94)',
-              titleColor: '#ffffff', bodyColor: '#ffffff',
-              bodyFont: { weight: 'bold' },
-              borderColor: 'rgba(109,40,217,.32)', borderWidth: 1,
-              padding: 10, displayColors: true,
+              backgroundColor: 'rgba(8, 4, 18, 0.96)',
+              titleColor: '#fff',
+              bodyColor: '#fff',
+              borderColor: 'rgba(255, 255, 255, 0.1)',
+              borderWidth: 1,
+              padding: 12,
+              cornerRadius: 8,
+              usePointStyle: true,
               callbacks: {
-                label: ctx => type === 'earnings' ? `R$ ${ctx.parsed.y?.toFixed(2).replace('.', ',') || 0}` : ctx.parsed.y
+                label: (ctx) => {
+                  let val = ctx.parsed.y;
+                  if (type === 'earnings') val = `R$ ${val.toFixed(2).replace('.', ',')}`;
+                  return `${ctx.dataset.label}: ${val}`;
+                }
               }
             }
           },
           scales: {
             x: {
-              grid: { color: 'transparent' },
-              ticks: { color: '#9d93c0', maxTicksLimit: 6, maxRotation: 0, font: { family: "'Plus Jakarta Sans',sans-serif", size: 10 } }
+              grid: { display: false },
+              ticks: { color: '#554c77', font: { size: 10, weight: '600' }, maxTicksLimit: 7 }
             },
             y: {
-              grid: { color: 'rgba(255,255,255,.08)', drawBorder: false, borderDash: [4, 4] },
-              ticks: { display: false },
+              grid: { color: 'rgba(255, 255, 255, 0.05)', borderDash: [4, 4], drawBorder: false },
+              ticks: { color: '#554c77', font: { size: 10, weight: '600' }, padding: 8 },
               beginAtZero: true
             }
           },
@@ -2221,11 +2371,31 @@
       });
     }
 
+    function downloadCSV() {
+      const link = document.createElement('a');
+      link.href = 'animeverse.csv';
+      link.download = 'historico_vendas.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
     function updateChartType(type, event) {
       currentChartType = type;
       document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
-      if (event) event.target.classList.add('active');
+      if (event && event.target.classList.contains('chart-btn')) {
+        event.target.classList.add('active');
+      } else {
+        // If triggered by stat tab, find corresponding chart-btn if any
+        const btn = Array.from(document.querySelectorAll('.chart-btn')).find(b =>
+          (type === 'earnings' && b.innerText.includes('Ganhos')) ||
+          (type === 'conversions' && b.innerText.includes('Conversões')) ||
+          (type === 'clicks' && b.innerText.includes('Cliques'))
+        );
+        if (btn) btn.classList.add('active');
+      }
       initChart();
+      updateMainStats();
     }
 
     function renderTopItems() {
@@ -2331,7 +2501,25 @@
     }
 
     // ── ACTIONS ──────────────────────────────────────────────
-    function openLink() { if (affiliateLink) window.open(affiliateLink, "_blank"); }
+    async function trackClick(code) {
+      const targetCode = code || (affiliateData ? affiliateData.code : null);
+      if (!targetCode) return false;
+
+      console.log("[TRACK] Enviando clique para código:", targetCode);
+      try {
+        const res = await edgeCall("affiliate", { action: "track_click", code: targetCode });
+        return res && !res.error;
+      } catch (e) {
+        console.error("[TRACK] Erro na chamada do servidor:", e);
+        return false;
+      }
+    }
+
+    function openLink() {
+      if (affiliateLink) {
+        window.open(affiliateLink, "_blank");
+      }
+    }
     function copyLink() {
       if (!affiliateLink) return;
       navigator.clipboard.writeText(affiliateLink).then(() => {
