@@ -1881,11 +1881,17 @@
                 <span class="ms-val" id="chartTotalSales">--</span>
                 <div class="ms-bar"></div>
               </div>
+              <div class="main-stat inactive" id="chartMainStat3" onclick="updateChartType('link_clicks')">
+                <span class="ms-label">Cliques no link</span>
+                <span class="ms-val" id="chartTotalLinkClicks">--</span>
+                <div class="ms-bar"></div>
+              </div>
             </div>
           </div>
           <div class="chart-toggles">
             <button class="chart-btn active" onclick="updateChartType('earnings',event)">Ganhos</button>
-            <button class="chart-btn" onclick="updateChartType('clicks',event)">Cliques</button>
+            <button class="chart-btn" onclick="updateChartType('clicks',event)">Cliques de Itens</button>
+            <button class="chart-btn" onclick="updateChartType('link_clicks',event)">Cliques no Link</button>
             <button class="chart-btn" onclick="updateChartType('conversions',event)">Conversões</button>
             <button class="chart-download-btn" onclick="downloadCSV()">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -2171,6 +2177,10 @@
 
         renderHistory(refs, res.withdrawals || []);
         await loadChartFromCSV();
+        
+        // Process Link Clicks history from database referrals
+        processLinkClicks(refs);
+        
         await loadRanking();
       } catch { toast("Erro ao carregar estatísticas.", "error"); }
     }
@@ -2253,6 +2263,31 @@
       } catch (e) { console.error("Erro ao carregar CSV", e); }
     }
 
+    function processLinkClicks(referrals) {
+      // Get labels from the "Total" group processed in loadChartFromCSV
+      const totalLabels = chartDataByGroup["Total"]?.labels || [];
+      if (!totalLabels.length) return;
+
+      const linkClicksGroup = {
+        labels: [...totalLabels],
+        earnings: new Array(totalLabels.length).fill(0),
+        clicks: new Array(totalLabels.length).fill(0),
+        conversions: new Array(totalLabels.length).fill(0)
+      };
+
+      referrals.forEach(ref => {
+        // Any record in referrals is a link click (converted or not)
+        const d = new Date(ref.created_at);
+        const dateStr = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+        const idx = totalLabels.indexOf(dateStr);
+        if (idx !== -1) {
+          linkClicksGroup.clicks[idx]++;
+        }
+      });
+
+      chartDataByGroup["Cliques no Link"] = linkClicksGroup;
+    }
+
     function updateMainStats() {
       const type = currentChartType;
       const groups = Object.keys(chartDataByGroup);
@@ -2268,24 +2303,25 @@
 
       const revenueEl = document.getElementById("chartTotalRevenue");
       const salesEl = document.getElementById("chartTotalSales");
+      const linkClicksEl = document.getElementById("chartTotalLinkClicks");
 
       if (revenueEl) revenueEl.textContent = Math.floor(totalRevenue).toLocaleString();
       if (salesEl) salesEl.textContent = totalSales > 0 ? totalSales.toLocaleString() : "--";
+      if (linkClicksEl) {
+        const totalLinkClicks = chartDataByGroup["Cliques no Link"]?.clicks.reduce((a, b) => a + (b || 0), 0) || 0;
+        linkClicksEl.textContent = totalLinkClicks.toLocaleString();
+      }
 
       // Update UI active state for stats tabs
       const stat1 = document.getElementById("chartMainStat1");
       const stat2 = document.getElementById("chartMainStat2");
-      if (stat1 && stat2) {
-        if (type === 'earnings') {
-          stat1.classList.remove("inactive");
-          stat2.classList.add("inactive");
-        } else if (type === 'conversions') {
-          stat1.classList.add("inactive");
-          stat2.classList.remove("inactive");
-        } else {
-          stat1.classList.add("inactive");
-          stat2.classList.add("inactive");
-        }
+      const stat3 = document.getElementById("chartMainStat3");
+
+      if (stat1 && stat2 && stat3) {
+        [stat1, stat2, stat3].forEach(s => s.classList.add("inactive"));
+        if (type === 'earnings') stat1.classList.remove("inactive");
+        else if (type === 'conversions') stat2.classList.remove("inactive");
+        else if (type === 'link_clicks') stat3.classList.remove("inactive");
       }
     }
 
@@ -2301,9 +2337,15 @@
 
       const datasets = groups.map(group => {
         const gd = chartDataByGroup[group];
-        const data = type === 'clicks' ? gd.clicks : type === 'conversions' ? gd.conversions : gd.earnings;
-        const isTotal = group === "Total";
-        const color = isTotal ? "#4f46e5" : palette[ci % palette.length];
+        let data = [];
+        if (type === 'link_clicks') {
+          data = gd.clicks;
+        } else {
+          data = type === 'clicks' ? gd.clicks : type === 'conversions' ? gd.conversions : gd.earnings;
+        }
+
+        const isTotal = group === "Total" || group === "Cliques no Link";
+        const color = group === "Cliques no Link" ? "#ec4899" : (isTotal ? "#4f46e5" : palette[ci % palette.length]);
         if (!isTotal) ci++;
 
         return {
@@ -2319,13 +2361,18 @@
           pointRadius: 0,
           pointHoverRadius: 4,
           pointHitRadius: 10,
-          hidden: !isTotal // Hide all except Total by default
+          hidden: !isTotal && group !== "Cliques no Link" // Hide details except Total/Link Clicks
         };
       });
 
+      // If viewing link clicks, we only want to show the Link Clicks dataset effectively
+      const filteredDatasets = type === 'link_clicks' 
+        ? datasets.filter(ds => ds.label === "Cliques no Link")
+        : datasets;
+
       perfChart = new Chart(ctx, {
         type: 'line',
-        data: { labels, datasets },
+        data: { labels, datasets: filteredDatasets },
         options: {
           responsive: true, maintainAspectRatio: false,
           plugins: {
@@ -2382,6 +2429,15 @@
 
     function updateChartType(type, event) {
       currentChartType = type;
+      
+      // Update Title
+      const titleEl = document.querySelector(".chart-title");
+      if (titleEl) {
+        titleEl.textContent = type === 'link_clicks' 
+          ? "Desempenho do seu Link de Afiliado" 
+          : "Itens de avatar mais populares";
+      }
+
       document.querySelectorAll('.chart-btn').forEach(b => b.classList.remove('active'));
       if (event && event.target.classList.contains('chart-btn')) {
         event.target.classList.add('active');
@@ -2390,7 +2446,8 @@
         const btn = Array.from(document.querySelectorAll('.chart-btn')).find(b =>
           (type === 'earnings' && b.innerText.includes('Ganhos')) ||
           (type === 'conversions' && b.innerText.includes('Conversões')) ||
-          (type === 'clicks' && b.innerText.includes('Cliques'))
+          (type === 'clicks' && b.innerText.includes('Cliques de Itens')) ||
+          (type === 'link_clicks' && b.innerText.includes('Cliques no Link'))
         );
         if (btn) btn.classList.add('active');
       }
